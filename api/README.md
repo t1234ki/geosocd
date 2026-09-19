@@ -12,7 +12,7 @@ Deploy `paystack-webhook.php` to a public HTTPS PHP host. Configure these server
 
 In the Paystack dashboard, switch to **Test mode** and set the webhook URL to:
 
-`https://your-domain.example/api/paystack-webhook.php`
+`https://your-domain.example/php-api/paystack-webhook.php`
 
 Do not use the local Vite URL as the webhook URL. Paystack cannot reach `localhost`.
 
@@ -23,4 +23,4 @@ php -S 127.0.0.1:8080 -t .
 ngrok http 8080
 ```
 
-Set the generated `https://...ngrok.../api/paystack-webhook.php` URL in Paystack Test mode. Never expose the service-role key or secret key to Vite/browser environment variables.
+Set the generated `https://...ngrok.../php-api/paystack-webhook.php` URL in Paystack Test mode. Never expose the service-role key or secret key to Vite/browser environment variables.
