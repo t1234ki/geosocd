@@ -1,4 +1,4 @@
-export const config = { runtime: 'nodejs18.x' };
+export const config = { runtime: 'nodejs' };
 
 async function readJsonBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;

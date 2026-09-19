@@ -1,4 +1,4 @@
-export const config = { runtime: 'nodejs18.x' };
+export const config = { runtime: 'nodejs' };
 
 function verifySignature(rawBody, signature, secret) {
   const expected = `sha512=${require('node:crypto').createHmac('sha512', secret).update(rawBody).digest('hex')}`;

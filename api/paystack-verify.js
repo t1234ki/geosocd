@@ -1,4 +1,4 @@
-export const config = { runtime: 'nodejs18.x' };
+export const config = { runtime: 'nodejs' };
 
 const jsonHeaders = {
   'Access-Control-Allow-Origin': '*',
