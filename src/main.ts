@@ -207,6 +207,7 @@ function showScannedPayment(rawValue: string) {
 
 async function scanPaymentQr() { if (!('BarcodeDetector' in window)) { showPaymentModal('QR scanner unavailable', '<p class="modal-copy">This browser does not support camera QR scanning. Use the QR button on a payment row instead.</p>'); return; } showPaymentModal('Scan payment QR', '<video id="qr-video" class="qr-video" autoplay playsinline></video><p id="qr-scan-status" class="modal-copy">Point the camera at a payment QR code.</p>'); const video = document.querySelector<HTMLVideoElement>('#qr-video')!; const detector = new (window as Window & { BarcodeDetector: new (options: { formats: string[] }) => { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector({ formats: ['qr_code'] }); const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); video.srcObject = stream; const scan = async () => { const codes = await detector.detect(video); if (codes[0]) { stream.getTracks().forEach((track) => track.stop()); showScannedPayment(codes[0].rawValue); return; } window.requestAnimationFrame(() => void scan()); }; void scan(); }
 
+function hasPublicPaymentQr() { const params = new URLSearchParams(window.location.search); return Boolean(params.get('ticket_qr') || params.get('payment_qr')); }
 function showPaymentQrFromUrl() { const params = new URLSearchParams(window.location.search); const qr = params.get('ticket_qr') || params.get('payment_qr'); if (!qr) return; showScannedPayment(qr); window.history.replaceState({}, '', window.location.pathname); }
 
 function showPaymentQr(payment: Payment) {
@@ -357,12 +358,15 @@ async function render() { if (!supabaseConfigured) return configurationScreen();
 
 new MutationObserver(() => installTicketNavigation()).observe(app, { childList: true, subtree: true });
 
-if (supabaseConfigured) {
+const publicPaymentQr = hasPublicPaymentQr();
+if (publicPaymentQr) {
+  showPaymentQrFromUrl();
+} else if (supabaseConfigured) {
   supabase.auth.getSession().then(({ data, error }) => {
     if (error) authScreen(`Unable to restore your session: ${error.message}`);
     else void boot(data.session?.user ?? null);
   }).catch((error: unknown) => authScreen(`Unable to connect to Supabase: ${errorText(error)}`));
 } else configurationScreen();
-supabase.auth.onAuthStateChange((event, session) => {
+if (!publicPaymentQr) supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT' || !session) { user = null; profile = null; authScreen(); }
 });
