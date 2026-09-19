@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
 .form-panel { max-width: 700px; }
 .due-form { display: grid; gap: 18px; }
 .due-form label { display: grid; gap: 8px; color: var(--ink); font: 12px Arial; font-weight: 700; }
@@ -248,3 +250,40 @@ h1 { font-size: clamp(30px, 4vw, 46px); letter-spacing: -2px; line-height: .98; 
 .verification-grid small { color: var(--muted); font: 11px Arial; text-transform: uppercase; letter-spacing: .06em; }
 .verification-grid strong { overflow-wrap: anywhere; }
 @media (max-width: 600px) { .verification-page { padding: 22px; } .verification-grid { grid-template-columns: 1fr; } }
+
+/* ElectionBridge product layer: warmer contrast, clearer focus, and a public legal surface. */
+:root { --display: 'Space Grotesk', 'Segoe UI', sans-serif; --body: 'DM Sans', 'Segoe UI', sans-serif; --bridge-ink: #12231f; --bridge-teal: #0b766e; --bridge-mint: #d9f3e8; --bridge-coral: #e88364; }
+body { font-family: var(--body); background: #f3f6f3; color: var(--bridge-ink); }
+h1, h2, h3, .brand, .legal-brand { font-family: var(--display); }
+.brand { letter-spacing: -.8px; }
+.brand-mark { background: var(--bridge-mint); color: var(--bridge-ink); box-shadow: 0 5px 14px rgba(11, 118, 110, .18); }
+.auth-showcase { background: linear-gradient(145deg, #102b29 0%, #0b766e 68%, #d08a65 150%); }
+.auth-showcase::before { content: ''; position: absolute; width: 260px; height: 260px; right: 12%; top: 20%; border: 1px solid rgba(217, 243, 232, .25); border-radius: 50%; box-shadow: 0 0 0 28px rgba(217, 243, 232, .05), 0 0 0 56px rgba(217, 243, 232, .04); }
+.auth-showcase::after { border-color: rgba(217, 243, 232, .3); box-shadow: 0 0 0 46px rgba(16, 43, 41, .28), 0 0 0 47px rgba(217, 243, 232, .15), 0 0 0 93px rgba(16, 43, 41, .2), 0 0 0 94px rgba(217, 243, 232, .1); }
+.auth-copy h1 { font-family: var(--display); font-weight: 600; letter-spacing: -3px; }
+.auth-copy h1 em { color: #d9f3e8; }
+.auth-copy > p:not(.eyebrow) { color: #d6e7e1; }
+.auth-proof small { color: #c1d8d1; }
+.auth-panel { background: #fbfcfa; }
+.auth-panel h2 { font-family: var(--display); font-weight: 600; }
+.auth-form input:focus, .auth-form select:focus, .due-form input:focus, .due-form select:focus { border-color: var(--bridge-teal); box-shadow: 0 0 0 4px rgba(11, 118, 110, .12); }
+.primary-button { background: var(--bridge-teal); transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+.primary-button:hover { background: #095f59; transform: translateY(-1px); box-shadow: 0 8px 18px rgba(11, 118, 110, .2); }
+.auth-submit { box-shadow: 0 10px 22px rgba(11, 118, 110, .16); }
+.privacy-link { display: block; margin-top: 18px; color: var(--bridge-teal); font: 12px var(--body); text-decoration: none; }
+.privacy-link:hover, .legal-back:hover { text-decoration: underline; }
+.legal-page { min-height: 100vh; padding: 54px 24px 80px; background: radial-gradient(circle at 80% 0%, #d9f3e8 0, transparent 28rem), #f3f6f3; }
+.legal-shell { width: min(100%, 820px); margin: 0 auto; }
+.legal-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--bridge-ink); font-size: 20px; font-weight: 700; text-decoration: none; margin-bottom: 76px; }
+.legal-page h1 { max-width: 620px; margin: 8px 0 18px; font-size: clamp(42px, 7vw, 76px); line-height: .98; letter-spacing: -3px; }
+.legal-lead { max-width: 610px; color: #49635d; font: 20px/1.55 var(--body); margin: 0 0 14px; }
+.legal-meta { color: #71857f; font: 12px var(--body); }
+.legal-content { margin-top: 58px; padding: 34px 0; border-top: 1px solid #cbdcd5; }
+.legal-content h2 { margin: 28px 0 9px; color: var(--bridge-ink); font-size: 22px; letter-spacing: -.4px; }
+.legal-content h2:first-child { margin-top: 0; }
+.legal-content p { max-width: 690px; color: #49635d; font: 15px/1.75 var(--body); margin: 0; }
+.legal-back { display: inline-block; margin-top: 28px; color: var(--bridge-teal); font: 600 13px var(--body); text-decoration: none; }
+.admin-shell .brand-mark, .member-shell .brand-mark { background: var(--bridge-mint); color: var(--bridge-ink); }
+.admin-shell .primary-button, .member-shell .primary-button { background: var(--bridge-teal); }
+.admin-shell .primary-button:hover, .member-shell .primary-button:hover { background: #095f59; }
+@media (max-width: 600px) { .legal-page { padding: 28px 20px 56px; } .legal-brand { margin-bottom: 54px; } .legal-page h1 { font-size: 46px; } .legal-lead { font-size: 17px; } }
