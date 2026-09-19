@@ -287,3 +287,38 @@ h1, h2, h3, .brand, .legal-brand { font-family: var(--display); }
 .admin-shell .primary-button, .member-shell .primary-button { background: var(--bridge-teal); }
 .admin-shell .primary-button:hover, .member-shell .primary-button:hover { background: #095f59; }
 @media (max-width: 600px) { .legal-page { padding: 28px 20px 56px; } .legal-brand { margin-bottom: 54px; } .legal-page h1 { font-size: 46px; } .legal-lead { font-size: 17px; } }
+
+/* Blue ElectionBridge theme and accessible dark mode. */
+:root { --bridge-blue: #1769d2; --bridge-blue-deep: #10233f; --bridge-blue-soft: #e4efff; --bridge-surface: #f5f8fc; --bridge-text: #10233f; --bridge-muted: #66768c; }
+body { background: var(--bridge-surface); color: var(--bridge-text); transition: background .2s ease, color .2s ease; }
+.auth-showcase { background: linear-gradient(145deg, #10233f, #1769d2 72%, #4c8fe4); }
+.auth-showcase::before { border-color: rgba(228, 239, 255, .22); box-shadow: 0 0 0 28px rgba(228, 239, 255, .05), 0 0 0 56px rgba(228, 239, 255, .035); }
+.auth-showcase::after { border-color: rgba(228, 239, 255, .28); box-shadow: 0 0 0 46px rgba(16, 35, 63, .3), 0 0 0 47px rgba(228, 239, 255, .14), 0 0 0 93px rgba(16, 35, 63, .2), 0 0 0 94px rgba(228, 239, 255, .08); }
+.auth-copy h1 em { color: #cfe2ff; }
+.auth-proof small { color: #c8daf1; }
+.primary-button, .admin-shell .primary-button, .member-shell .primary-button { background: var(--bridge-blue); }
+.primary-button:hover, .admin-shell .primary-button:hover, .member-shell .primary-button:hover { background: #0e4fa8; }
+.eyebrow, .text-button, .amount { color: var(--bridge-blue); }
+.auth-tabs button.active { color: var(--bridge-blue); border-color: var(--bridge-blue); }
+.privacy-link, .legal-back { color: var(--bridge-blue); }
+.mobile-dashboard-tools { display: none; }
+.app-footer { margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--bridge-muted); font: 11px var(--body); letter-spacing: .04em; text-align: right; }
+.theme-toggle { border: 1px solid rgba(23, 105, 210, .35); border-radius: 999px; background: rgba(255, 255, 255, .16); color: inherit; padding: 8px 12px; font: 600 11px var(--body); cursor: pointer; }
+.auth-theme-toggle { position: absolute; top: 24px; right: 24px; z-index: 2; color: #fff; }
+.legal-theme-toggle { float: right; color: var(--bridge-text); background: var(--bridge-blue-soft); }
+.mobile-dashboard-tools .theme-toggle { color: var(--bridge-text); background: #fff; }
+html[data-theme='dark'] { --bridge-surface: #101923; --bridge-text: #e6edf5; --bridge-muted: #9aaabd; --line: #344457; --paper: #182534; --ink: #e6edf5; --muted: #9aaabd; --bridge-blue-soft: #1d3554; }
+html[data-theme='dark'] body, html[data-theme='dark'] .auth-panel, html[data-theme='dark'] .config-page, html[data-theme='dark'] .legal-page { background: #101923; color: #e6edf5; }
+html[data-theme='dark'] .auth-panel, html[data-theme='dark'] .config-card, html[data-theme='dark'] .legal-content, html[data-theme='dark'] .legal-content h2 { color: #e6edf5; }
+html[data-theme='dark'] .auth-panel h2, html[data-theme='dark'] .legal-page h1, html[data-theme='dark'] .legal-content h2, html[data-theme='dark'] .legal-brand { color: #e6edf5; }
+html[data-theme='dark'] .auth-subtitle, html[data-theme='dark'] .auth-hint, html[data-theme='dark'] .legal-lead, html[data-theme='dark'] .legal-content p, html[data-theme='dark'] .legal-meta { color: #aebdce; }
+html[data-theme='dark'] .auth-form input, html[data-theme='dark'] .due-form input, html[data-theme='dark'] .due-form select, html[data-theme='dark'] .mobile-dashboard-tools select { background: #111d2a; color: #e6edf5; border-color: #41546a; }
+html[data-theme='dark'] .admin-shell .main, html[data-theme='dark'] .member-shell .main, html[data-theme='dark'] .loading-page { background: #101923; }
+html[data-theme='dark'] .admin-shell .panel, html[data-theme='dark'] .member-shell .panel, html[data-theme='dark'] .admin-shell .stat, html[data-theme='dark'] .member-shell .stat, html[data-theme='dark'] .member-shell .member-hero { background: #182534; border-color: #344457; color: #e6edf5; }
+html[data-theme='dark'] .admin-shell .topbar h1, html[data-theme='dark'] .member-shell .topbar h1, html[data-theme='dark'] .admin-shell .panel-heading h2, html[data-theme='dark'] .member-shell .panel-heading h2, html[data-theme='dark'] .admin-shell .stat strong, html[data-theme='dark'] .member-shell .stat strong { color: #e6edf5; }
+html[data-theme='dark'] .legal-content { border-color: #344457; }
+html[data-theme='dark'] .legal-theme-toggle, html[data-theme='dark'] .mobile-dashboard-tools .theme-toggle { background: #1d3554; color: #dbe9ff; }
+html[data-theme='dark'] .modal { background: #182534; border-color: #344457; }
+html[data-theme='dark'] .modal h2, html[data-theme='dark'] .modal-copy { color: #e6edf5; }
+@media (max-width: 900px) { .mobile-dashboard-tools { display: flex; gap: 8px; align-items: center; margin: -55px 0 22px; } .mobile-dashboard-tools select { flex: 1; min-width: 0; border: 1px solid #cbd5e2; border-radius: 999px; background: #fff; color: var(--bridge-text); padding: 9px 12px; font: 600 12px var(--body); } .panel { overflow: visible !important; } .table { min-width: 0 !important; table-layout: fixed; font-size: 12px; } .table th, .table td { overflow-wrap: anywhere; } }
+@media (max-width: 600px) { .table, .table thead, .table tbody, .table tr, .table th, .table td { display: block; width: 100%; } .table thead { display: none; } .table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); } .table tr:last-child { border-bottom: 0; } .table td { border: 0; padding: 0; min-width: 0; } .table td:first-child { grid-column: 1 / -1; font-weight: 700; } .table td button { max-width: 100%; white-space: normal; } .auth-theme-toggle { top: 18px; right: 18px; } }
