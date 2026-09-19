@@ -74,7 +74,13 @@ export default async function handler(req, res) {
     },
   });
 
-  const paystackJson = await paystackResponse.json();
+  const paystackText = await paystackResponse.text();
+  let paystackJson = {};
+  try {
+    paystackJson = paystackText ? JSON.parse(paystackText) : {};
+  } catch {
+    return res.status(502).json({ error: 'Paystack returned an invalid response' });
+  }
   const verified = paystackJson ?? {};
   const data = verified.data ?? {};
 
@@ -82,7 +88,14 @@ export default async function handler(req, res) {
     return res.status(422).json({ error: 'Paystack payment is not verified', payload: verified });
   }
 
-  const metadata = typeof data.metadata === 'string' ? JSON.parse(data.metadata || '{}') : (data.metadata ?? {});
+  let metadata = data.metadata ?? {};
+  if (typeof metadata === 'string') {
+    try {
+      metadata = JSON.parse(metadata || '{}');
+    } catch {
+      return res.status(422).json({ error: 'Verified payment metadata is invalid' });
+    }
+  }
   const dueId = metadata.due_id || '';
   const memberId = metadata.member_id || '';
   const amount = Number((data.amount ?? 0) / 100);

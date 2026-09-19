@@ -74,7 +74,9 @@ function authScreen(message = '') {
   };
 }
 
-async function syncReturnedPayment() { const reference = new URLSearchParams(window.location.search).get('reference') || new URLSearchParams(window.location.search).get('trxref'); if (!reference) return; const verifyUrl = import.meta.env.VITE_PAYSTACK_VERIFY_URL || '/api/paystack-verify'; const response = await fetch(verifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference }) }); const result = await response.json() as { error?: string; status?: number; detail?: unknown }; if (!response.ok) throw new Error([result.error || 'Payment verification failed.', result.status ? `Status: ${result.status}` : '', result.detail ? `Detail: ${JSON.stringify(result.detail)}` : ''].filter(Boolean).join(' | ')); window.history.replaceState({}, '', window.location.pathname); }
+async function readJsonResponse(response: Response): Promise<Record<string, any>> { const text = await response.text(); if (!text.trim()) return {}; try { const parsed: unknown = JSON.parse(text); return parsed && typeof parsed === 'object' ? parsed as Record<string, any> : {}; } catch { return {}; } }
+
+async function syncReturnedPayment() { const reference = new URLSearchParams(window.location.search).get('reference') || new URLSearchParams(window.location.search).get('trxref'); if (!reference) return; const localHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'; const verifyUrl = import.meta.env.VITE_PAYSTACK_VERIFY_URL || (localHost ? 'http://127.0.0.1:8080/api/paystack-verify.php' : '/api/paystack-verify'); const response = await fetch(verifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference }) }); const result = await readJsonResponse(response) as { error?: string; status?: number; detail?: unknown; recorded?: boolean }; if (!response.ok) throw new Error([result.error || `Payment verification failed (HTTP ${response.status}).`, result.status ? `Status: ${result.status}` : '', result.detail ? `Detail: ${JSON.stringify(result.detail)}` : ''].filter(Boolean).join(' | ')); if (!result.recorded) throw new Error('Payment verification returned an empty response.'); window.history.replaceState({}, '', window.location.pathname); }
 
 async function boot(currentUser: User | null) { user = currentUser; profile = null; if (!user) { authScreen(); return; } const { data, error } = await supabase.from('profiles').select('id, index_number, full_name, phone, role, organization_id').eq('id', user.id).single(); if (error) { authScreen(`Signed in, but your profile could not be loaded: ${error.message}`); return; } profile = data as Profile; if (!profile.organization_id) { onboardingScreen(); return; } let paymentError = ''; try { await syncReturnedPayment(); } catch (error) { console.error(error); paymentError = errorText(error); } selectedPage = profile.role === 'admin' ? 'Overview' : 'My overview'; await render(); if (paymentError) showPaymentModal('Payment not recorded', `<p class="modal-copy">${esc(paymentError)}</p><p class="modal-copy">Keep the Paystack reference in the URL and contact the administrator if this continues.</p>`); showPaymentQrFromUrl(); }
 
@@ -250,9 +252,10 @@ async function startPaystack(due: Due, amount: number) {
   if (payButton) { payButton.disabled = true; payButton.textContent = 'Opening checkout...'; }
   try {
     const reference = `GEODUES-${crypto.randomUUID()}`;
-    const initializeUrl = import.meta.env.VITE_PAYSTACK_INITIALIZE_URL || 'http://127.0.0.1:8080/api/paystack-initialize.php';
+    const localHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const initializeUrl = import.meta.env.VITE_PAYSTACK_INITIALIZE_URL || (localHost ? 'http://127.0.0.1:8080/api/paystack-initialize.php' : '/api/paystack-initialize');
     const response = await fetch(initializeUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user.email, amount: amount * 100, reference, callback_url: window.location.origin, metadata: { member_id: user.id, due_id: due.id, member_phone: profile.phone, index_number: profile.index_number } }) });
-    const initialized = await response.json() as { authorization_url?: string; error?: string };
+    const initialized = await readJsonResponse(response) as { authorization_url?: string; error?: string };
     if (!response.ok || !initialized.authorization_url) throw new Error(initialized.error || 'Paystack could not initialize the checkout.');
     window.location.assign(initialized.authorization_url);
   } catch (error) {
