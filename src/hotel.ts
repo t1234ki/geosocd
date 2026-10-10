@@ -52,8 +52,6 @@ function renderLanding(message = '') {
   const form = document.querySelector<HTMLFormElement>('#availability-form')!;
   form.onsubmit = async (event) => {
     event.preventDefault();
-    const room = selectedRoom;
-    if (!room) return;
     const checkIn = document.querySelector<HTMLInputElement>('#check-in')!.value;
     const checkOut = document.querySelector<HTMLInputElement>('#check-out')!.value;
     const guests = Number(document.querySelector<HTMLSelectElement>('#guest-count')!.value);
@@ -69,8 +67,11 @@ async function loadAvailability() {
   app.classList.add('is-loading');
   const { data, error } = await supabase.rpc('hotel_room_availability', { p_check_in: searchDates.checkIn, p_check_out: searchDates.checkOut });
   app.classList.remove('is-loading');
-  if (error) { renderLanding('Room search is temporarily unavailable. Please call the hotel directly for assistance.'); return; }
+  if (error) { history.replaceState({ page: 'home' }, '', '/'); renderLanding('Room search is temporarily unavailable. Please call the hotel directly for assistance.'); return; }
   rooms = (data || []) as Room[];
+  const params = new URLSearchParams({ rooms: '1', arrival: searchDates.checkIn, departure: searchDates.checkOut, guests: String(searchDates.guests) });
+  if (new URLSearchParams(location.search).has('rooms')) history.replaceState({ page: 'rooms' }, '', `/?${params.toString()}`);
+  else history.pushState({ page: 'rooms' }, '', `/?${params.toString()}`);
   renderCabinDeck();
 }
 
@@ -83,7 +84,7 @@ function renderCabinDeck() {
   const deckGroups = Array.from(groups.entries()).map(([label, items]) => `<section class="deck-group"><div class="deck-group-label"><span>${esc(label)}</span><i>${items.length} rooms</i></div><div class="deck-cabin">${items.map((room, index) => `<button class="cabin-room status-${esc(room.availability)} ${selectedRoom?.id === room.id ? 'is-selected' : ''}" data-room-id="${room.id}" ${room.availability !== 'available' || room.capacity < searchDates.guests ? 'disabled' : ''} aria-label="${esc(room.room_name)}, ${esc(room.category_name)}, ${esc(room.availability)}"><span class="cabin-seat-number">${String(index + 1).padStart(2, '0')}</span><strong>${esc(room.room_name)}</strong><small>${esc(room.category_name)}</small><b>${money(room.nightly_rate)}<i> / night</i></b></button>`).join('')}</div></section>`).join('');
   const bookingDetails = selectedRoom ? bookingPanel(selectedRoom) : `<aside class="booking-placeholder"><span class="booking-step-number">02</span><p class="eyebrow">YOUR SELECTION</p><h3>Choose an available room.</h3><p>Room details, stay total, and your reservation form will appear here.</p><div class="booking-placeholder-rule"></div><div class="mini-legends"><span><i class="legend-available"></i> Available</span><span><i class="legend-reserved"></i> Reserved</span><span><i class="legend-occupied"></i> Occupied / closed</span></div></aside>`;
   shell(`<main class="deck-page"><div class="deck-breadcrumb"><button type="button" id="back-search">← Edit trip search</button><span>${new Date(`${searchDates.checkIn}T12:00:00`).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })} — ${new Date(`${searchDates.checkOut}T12:00:00`).toLocaleDateString('en-GH', { day: 'numeric', month: 'short', year: 'numeric' })}</span><span>${searchDates.guests} guest${searchDates.guests > 1 ? 's' : ''}</span></div><header class="deck-title"><div><p class="eyebrow">JONAT HOTEL · ROOM DECK</p><h1>Select your room.</h1><p>${nightsBetween(searchDates.checkIn, searchDates.checkOut)} nights · ${availableCount} available for your party</p></div><span class="search-step">02 <i>/ 03</i></span></header><div class="deck-filters"><div class="status-legend"><span><i class="legend-available"></i> Available</span><span><i class="legend-reserved"></i> Reserved</span><span><i class="legend-occupied"></i> Occupied / maintenance</span></div><label class="floor-select">FLOOR<select id="floor-filter"><option value="all">All floors</option>${floors.map((floor) => `<option value="${floor}" ${selectedFloor === String(floor) ? 'selected' : ''}>Floor ${floor}</option>`).join('')}</select></label></div><div class="deck-layout"><div class="cabin-map">${deckGroups || `<div class="deck-empty"><h3>No rooms are published yet.</h3><p>Our team is preparing the room deck. Please call ${HOTEL_PHONE} to reserve by phone.</p></div>`}</div>${bookingDetails}</div><p class="deck-footnote">Inventory updates as dates are searched. Reservations are held for pay-at-hotel; room charges are settled at the front desk.</p></main>`);
-  document.querySelector<HTMLButtonElement>('#back-search')!.onclick = () => { selectedRoom = null; renderLanding(); };
+  document.querySelector<HTMLButtonElement>('#back-search')!.onclick = () => { selectedRoom = null; history.pushState({ page: 'home' }, '', '/'); renderLanding(); };
   document.querySelector<HTMLSelectElement>('#floor-filter')!.onchange = (event) => { selectedFloor = (event.target as HTMLSelectElement).value; renderCabinDeck(); };
   document.querySelectorAll<HTMLButtonElement>('.cabin-room:not(:disabled)').forEach((button) => button.onclick = () => { selectedRoom = rooms.find((room) => room.id === button.dataset.roomId) || null; renderCabinDeck(); });
   bindReservationForm();
@@ -156,7 +157,7 @@ async function renderLookup(message = '') {
 }
 
 function showStaffLogin(message = staffAuthError) {
-  shell(`<main class="staff-login-page"><section class="staff-login-card"><button class="close-staff" id="close-staff" aria-label="Close">×</button><p class="eyebrow">JONAT HOTEL · OPERATIONS</p><h1>Staff access</h1><p>Sign in with your hotel staff account to open the live room board.</p>${message ? `<p class="hotel-error">${esc(message)}</p>` : ''}<form id="staff-login-form"><label>EMAIL<input id="staff-email" type="email" required autocomplete="username"></label><label>PASSWORD<input id="staff-password" type="password" required autocomplete="current-password"></label><button class="confirm-reservation" type="submit">Sign in <span>↗</span></button></form><small>Staff access must be provisioned by the hotel administrator.</small></section></main>`);
+  shell(`<main class="staff-login-page"><section class="staff-login-card"><button class="close-staff" id="close-staff" aria-label="Close">×</button><p class="eyebrow">JONAT HOTEL · OPERATIONS</p><h1>Staff access</h1><p>Sign in with the email and password for your hotel staff Supabase Auth account. Guest accounts do not have staff access.</p>${message ? `<p class="hotel-error">${esc(message)}</p>` : ''}<form id="staff-login-form"><label>EMAIL<input id="staff-email" type="email" required autocomplete="username"></label><label>PASSWORD<input id="staff-password" type="password" required autocomplete="current-password"></label><button class="confirm-reservation" type="submit">Sign in <span>↗</span></button></form><details class="staff-provisioning"><summary>Need a staff account?</summary><p>A project admin must create a user in Supabase Dashboard → Authentication → Users, then add that user's UUID to <code>public.hotel_staff</code>. See the hotel setup guide for the SQL command. There is no shared default staff password.</p></details></section></main>`);
   document.querySelector<HTMLButtonElement>('#close-staff')!.onclick = () => renderLanding();
   document.querySelector<HTMLFormElement>('#staff-login-form')!.onsubmit = async (event) => {
     event.preventDefault();
@@ -234,17 +235,34 @@ async function bootHotel() {
   if (!supabaseConfigured) { renderLanding('Room reservations are being configured. Please call the hotel to book.'); return; }
   const { data } = await supabase.auth.getSession();
   sessionUser = data.session?.user || null;
+  await routeFromLocation();
+}
+
+async function routeFromLocation() {
   const query = new URLSearchParams(window.location.search);
   if (query.has('booking')) { renderLookup(); return; }
   if (query.has('staff')) { showStaffLogin(); return; }
+  if (query.get('rooms') === '1') {
+    const arrival = query.get('arrival') || '';
+    const departure = query.get('departure') || '';
+    const guests = Number(query.get('guests') || 2);
+    if (arrival >= todayISO() && departure > arrival && guests >= 1 && guests <= 4) {
+      searchDates = { checkIn: arrival, checkOut: departure, guests };
+      await loadAvailability();
+      return;
+    }
+    history.replaceState({ page: 'home' }, '', '/');
+  }
   renderLanding();
 }
 
+window.addEventListener('popstate', () => { selectedRoom = null; void routeFromLocation(); });
+
 function guestSignOut() { return supabase.auth.signOut().then(() => { sessionUser = null; renderLanding(); }); }
 
-function showGuestAuth(message = '') {
+function showGuestAuth(message = '', prefill: { name?: string; email?: string; phone?: string } = {}) {
   document.querySelector('.hotel-modal-backdrop')?.remove();
-  document.body.insertAdjacentHTML('beforeend', `<div class="hotel-modal-backdrop"><section class="guest-auth-card" role="dialog" aria-modal="true" aria-labelledby="guest-auth-title"><button class="guest-auth-close" id="guest-auth-close" aria-label="Close">×</button><p class="eyebrow">JONAT HOTEL · GUEST PROFILE</p><h2 id="guest-auth-title">${guestAuthView === 'login' ? 'Welcome back.' : 'Create your guest profile.'}</h2><p class="guest-auth-copy">${guestAuthView === 'login' ? 'Sign in to bring your contact details into the reservation.' : 'Save your name, email, and phone for a faster next stay.'}</p>${message ? `<p class="hotel-error">${esc(message)}</p>` : ''}<form id="guest-auth-form">${guestAuthView === 'signup' ? '<label>FULL NAME<input id="account-name" required autocomplete="name" placeholder="Full name"></label>' : ''}<label>EMAIL ADDRESS<input id="account-email" type="email" required autocomplete="email" value="${esc(sessionUser?.email || '')}" placeholder="you@example.com"></label>${guestAuthView === 'signup' ? '<label>PHONE NUMBER<input id="account-phone" type="tel" required autocomplete="tel" placeholder="+233 …"></label>' : ''}<label>PASSWORD<input id="account-password" type="password" required minlength="8" autocomplete="${guestAuthView === 'login' ? 'current-password' : 'new-password'}" placeholder="At least 8 characters"></label><button class="confirm-reservation" type="submit">${guestAuthView === 'login' ? 'Sign in' : 'Create account'} <span>↗</span></button></form><button class="guest-auth-switch" id="guest-auth-switch" type="button">${guestAuthView === 'login' ? 'New to Jonat? Create a guest profile.' : 'Already have a profile? Sign in.'}</button></section></div>`);
+  document.body.insertAdjacentHTML('beforeend', `<div class="hotel-modal-backdrop"><section class="guest-auth-card" role="dialog" aria-modal="true" aria-labelledby="guest-auth-title"><button class="guest-auth-close" id="guest-auth-close" aria-label="Close">×</button><p class="eyebrow">JONAT HOTEL · GUEST PROFILE</p><h2 id="guest-auth-title">${guestAuthView === 'login' ? 'Welcome back.' : 'Create your guest profile.'}</h2><p class="guest-auth-copy">${guestAuthView === 'login' ? 'Sign in to bring your contact details into the reservation.' : 'Save your name, email, and phone for a faster next stay.'}</p>${message ? `<p class="hotel-error">${esc(message)}</p>` : ''}<form id="guest-auth-form">${guestAuthView === 'signup' ? `<label>FULL NAME<input id="account-name" required autocomplete="name" value="${esc(prefill.name || '')}" placeholder="Full name"></label>` : ''}<label>EMAIL ADDRESS<input id="account-email" type="email" required autocomplete="email" value="${esc(prefill.email || sessionUser?.email || '')}" placeholder="you@example.com"></label>${guestAuthView === 'signup' ? `<label>PHONE NUMBER<input id="account-phone" type="tel" required autocomplete="tel" value="${esc(prefill.phone || '')}" placeholder="+233 …"></label>` : ''}<label>PASSWORD<input id="account-password" type="password" required minlength="8" autocomplete="${guestAuthView === 'login' ? 'current-password' : 'new-password'}" placeholder="At least 8 characters"></label><button class="confirm-reservation" type="submit">${guestAuthView === 'login' ? 'Sign in' : 'Create account'} <span>↗</span></button></form>${guestAuthView === 'signup' ? '<small class="guest-auth-note">If email confirmation is enabled, confirm from your inbox before signing in. You can also close this panel and reserve without an account.</small>' : ''}<button class="guest-auth-switch" id="guest-auth-switch" type="button">${guestAuthView === 'login' ? 'New to Jonat? Create a guest profile.' : 'Already have a profile? Sign in.'}</button></section></div>`);
   document.querySelector<HTMLButtonElement>('#guest-auth-close')!.onclick = () => document.querySelector('.hotel-modal-backdrop')?.remove();
   document.querySelector<HTMLButtonElement>('#guest-auth-switch')!.onclick = () => { guestAuthView = guestAuthView === 'login' ? 'signup' : 'login'; showGuestAuth(); };
   document.querySelector<HTMLFormElement>('#guest-auth-form')!.onsubmit = async (event) => {
@@ -254,8 +272,8 @@ function showGuestAuth(message = '') {
     const result = guestAuthView === 'login'
       ? await supabase.auth.signInWithPassword({ email, password })
       : await supabase.auth.signUp({ email, password, options: { data: { full_name: document.querySelector<HTMLInputElement>('#account-name')!.value.trim(), phone: document.querySelector<HTMLInputElement>('#account-phone')!.value.trim() } } });
-    if (result.error) { showGuestAuth(result.error.message); return; }
-    if (guestAuthView === 'signup' && !result.data.session) { guestAuthView = 'login'; showGuestAuth('Check your email to confirm your guest profile, then sign in here.'); return; }
+    if (result.error) { showGuestAuth(result.error.message, { name: document.querySelector<HTMLInputElement>('#account-name')?.value || '', email, phone: document.querySelector<HTMLInputElement>('#account-phone')?.value || '' }); return; }
+    if (guestAuthView === 'signup' && !result.data.session) { guestAuthView = 'login'; showGuestAuth('Account created. Check your email for a confirmation link, then sign in. If no email arrives, ask the hotel administrator to review Supabase Auth email settings.', { email }); return; }
     sessionUser = result.data.user;
     document.querySelector('.hotel-modal-backdrop')?.remove();
     renderLanding('Guest profile ready. Your contact details will be filled into your reservation.');
