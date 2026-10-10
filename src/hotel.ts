@@ -32,12 +32,23 @@ function nextDayISO(value: string) { const date = new Date(`${value}T12:00:00`);
 function initials(value: string) { return value.trim().split(/\s+/).map((part) => part[0] || '').join('').slice(0, 2).toUpperCase() || 'G'; }
 
 function header() {
-  return `<header class="hotel-nav"><a class="hotel-brand" href="#top" aria-label="Jonat Hotel home"><span class="jonat-monogram">J</span><span><strong>JONAT</strong><small>HOTEL · CAPE COAST</small></span></a><nav class="hotel-nav-links"><a href="#stay">The stay</a><a href="#how-it-works">How it works</a><a href="#deck">Room deck</a><a href="#location">Location</a></nav><div class="hotel-nav-actions"><button class="guest-account" id="guest-account" type="button" aria-label="${sessionUser ? 'Manage guest profile or sign out' : 'Sign in or create an optional guest account'}" title="Optional guest profile. You can also reserve without an account."><span class="guest-account-icon">${sessionUser ? esc(initials(String(sessionUser.user_metadata?.full_name || sessionUser.email || 'Guest'))) : 'G'}</span><span class="guest-account-label"><strong>${sessionUser ? esc(sessionUser.user_metadata?.full_name || 'My account') : 'Guest account'}</strong><small>${sessionUser ? 'Manage profile' : 'Optional · book without one'}</small></span><span class="guest-account-chevron">⌄</span></button><button class="staff-open" id="staff-open" type="button">Staff sign in</button></div></header>`;
+  return `<header class="hotel-nav"><a class="hotel-brand" href="#top" aria-label="Jonat Hotel home"><span class="jonat-monogram">J</span><span><strong>JONAT</strong><small>HOTEL · CAPE COAST</small></span></a><button class="mobile-menu-toggle" id="mobile-menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button><nav class="hotel-nav-links" id="hotel-nav-links"><a href="#stay">The stay</a><a href="#how-it-works">How it works</a><a href="#deck">Room deck</a><a href="#location">Location</a></nav><div class="hotel-nav-actions"><button class="guest-account" id="guest-account" type="button" aria-label="${sessionUser ? 'Manage guest profile or sign out' : 'Sign in or create an optional guest account'}" title="Optional guest profile. You can also reserve without an account."><span class="guest-account-icon">${sessionUser ? esc(initials(String(sessionUser.user_metadata?.full_name || sessionUser.email || 'Guest'))) : 'G'}</span><span class="guest-account-label"><strong>${sessionUser ? esc(sessionUser.user_metadata?.full_name || 'My account') : 'Guest account'}</strong><small>${sessionUser ? 'Manage profile' : 'Optional · book without one'}</small></span><span class="guest-account-chevron">⌄</span></button><button class="staff-open" id="staff-open" type="button">Staff sign in</button></div></header>`;
 }
 function shell(content: string) {
   app.innerHTML = `<div class="hotel-app" id="top">${header()}${content}<footer class="hotel-footer"><div><a class="hotel-brand" href="#top"><span class="jonat-monogram">J</span><span><strong>JONAT</strong><small>HOTEL · CAPE COAST</small></span></a><p>Stay well. Arrive ready.</p></div><div><b>Find us</b><p>${HOTEL_ADDRESS}</p><a href="tel:+233204217037">${HOTEL_PHONE}</a></div><div><b>At the hotel</b><p>Restaurant · Bar · Garden</p><p>Room service · Private parking</p></div><div class="footer-credit">Reservations powered by <strong>ElectionBridge</strong></div></footer></div>`;
   document.querySelector<HTMLButtonElement>('#staff-open')!.onclick = () => showStaffLogin();
   document.querySelector<HTMLButtonElement>('#guest-account')!.onclick = () => sessionUser ? void guestSignOut() : showGuestAuth();
+  const menuToggle = document.querySelector<HTMLButtonElement>('#mobile-menu-toggle');
+  menuToggle?.addEventListener('click', () => {
+    const isOpen = document.querySelector('.hotel-nav')?.classList.toggle('mobile-menu-open') || false;
+    menuToggle.setAttribute('aria-expanded', String(isOpen));
+    menuToggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+  });
+  document.querySelectorAll<HTMLAnchorElement>('#hotel-nav-links a').forEach((link) => link.addEventListener('click', () => {
+    document.querySelector('.hotel-nav')?.classList.remove('mobile-menu-open');
+    menuToggle?.setAttribute('aria-expanded', 'false');
+    menuToggle?.setAttribute('aria-label', 'Open navigation');
+  }));
   document.querySelectorAll<HTMLButtonElement>('[data-scroll]').forEach((button) => button.onclick = () => document.querySelector(button.dataset.scroll || '#top')?.scrollIntoView({ behavior: 'smooth' }));
 }
 
