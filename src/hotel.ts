@@ -137,6 +137,21 @@ function bindReservationForm() {
   };
 }
 
+function applyHotelBranding() {
+  const heading = app.querySelector<HTMLElement>('.hero-copy h1');
+  if (heading && !heading.textContent?.includes('Relax into our')) heading.innerHTML = 'Relax into our<br><em>luxury.</em>';
+  const footerMotto = app.querySelector<HTMLElement>('.hotel-footer > div:first-child > p');
+  if (footerMotto && footerMotto.textContent !== 'Relax into our luxury') footerMotto.textContent = 'Relax into our luxury';
+  const amenities = app.querySelector<HTMLElement>('.amenity-strip');
+  if (amenities && amenities.dataset.jonatFacilities !== 'true') {
+    amenities.dataset.jonatFacilities = 'true';
+    amenities.innerHTML = `<div><span class="amenity-icon">⌂</span><strong>Accommodation</strong><small>Comfort for every stay</small></div><div><span class="amenity-icon">◌</span><strong>Restaurant</strong><small>Dining at the hotel</small></div><div><span class="amenity-icon">▦</span><strong>Conference room</strong><small>Space to meet</small></div><div><span class="amenity-icon">▱</span><strong>Mini bar & garden</strong><small>Unwind at your pace</small></div><div><span class="amenity-icon">◉</span><strong>24-hour security cameras</strong><small>Monitored around the clock</small></div><div><span class="amenity-icon">P</span><strong>Spacious car park</strong><small>Convenient on-site parking</small></div>`;
+  }
+}
+
+new MutationObserver(() => applyHotelBranding()).observe(app, { childList: true, subtree: true });
+applyHotelBranding();
+
 function renderBoardingPass(booking: Booking, room?: Room) {
   const nights = nightsBetween(booking.check_in, booking.check_out);
   const roomName = room?.room_name || booking.room_name || 'Assigned room';
