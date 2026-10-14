@@ -24,6 +24,8 @@ let staffMode = false;
 let staffAuthError = '';
 let guestAuthView: 'login' | 'signup' = 'login';
 let selectedFloor = 'all';
+let selectedStaffSection: 'overview' | 'reservations' | 'rooms' | 'categories' = 'overview';
+let editingRoomId = '';
 
 function nightsBetween(start: string, end: string) { return Math.max(1, Math.ceil((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000)); }
 function todayISO() { return new Date().toISOString().slice(0, 10); }
@@ -207,9 +209,67 @@ function renderStaffBoard(bookings: StaffBooking[], message = '', categories: Ca
   const checkInToday = bookings.filter((booking) => booking.check_in === todayISO() && booking.status === 'reserved').length;
   const occupied = bookings.filter((booking) => booking.status === 'checked_in').length;
   const rows = bookings.map((booking) => `<tr><td><strong>${esc(booking.booking_reference)}</strong><small>${esc(booking.guest_full_name)} · ${esc(booking.guest_phone)}</small></td><td>${esc(booking.room_name)}<small>${esc(booking.category_name)}</small></td><td>${booking.check_in}<small>until ${booking.check_out}</small></td><td>${money(booking.total_amount)}</td><td><span class="status-pill status-${esc(booking.status)}">${esc(booking.status.replace('_', ' '))}</span></td><td><select class="booking-status-select" data-reservation-id="${booking.id}" aria-label="Update ${esc(booking.booking_reference)} status"><option value="reserved" ${booking.status === 'reserved' ? 'selected' : ''}>Reserved</option><option value="checked_in" ${booking.status === 'checked_in' ? 'selected' : ''}>Check in</option><option value="checked_out" ${booking.status === 'checked_out' ? 'selected' : ''}>Check out</option><option value="cancelled" ${booking.status === 'cancelled' ? 'selected' : ''}>Cancel</option></select></td></tr>`).join('');
-  shell(`<main class="staff-board"><header class="staff-board-heading"><div><p class="eyebrow">JONAT HOTEL · LIVE OPERATIONS</p><h1>Room operations</h1><p>Reservations, arrivals, and room turns.</p></div><button class="staff-signout" id="staff-signout">Sign out</button></header>${message ? `<p class="staff-message">${esc(message)}</p>` : ''}<div class="ops-stats"><div><small>ARRIVALS TODAY</small><strong>${checkInToday}</strong></div><div><small>IN HOUSE</small><strong>${occupied}</strong></div><div><small>RESERVATIONS</small><strong>${bookings.filter((booking) => booking.status === 'reserved').length}</strong></div></div><section class="ops-panel"><div class="ops-toolbar"><div><p class="eyebrow">THE FRONT DESK</p><h2>Reservation manifest</h2></div><button id="refresh-ops" class="staff-signout">Refresh</button></div><div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>GUEST / REFERENCE</th><th>ROOM</th><th>DATES</th><th>STAY TOTAL</th><th>STATUS</th><th>UPDATE</th></tr></thead><tbody>${rows || '<tr><td colspan="6" class="empty-ops">No reservations to show yet.</td></tr>'}</tbody></table></div></section><p class="ops-footnote">A check-in occupies the room; check-out or cancellation releases it for new searches.</p></main>`);
+  shell(`<main class="staff-board"><header class="staff-board-heading"><div><p class="eyebrow">JONAT HOTEL · LIVE OPERATIONS</p><h1>Hotel dashboard</h1><p>Reservations, room inventory, and daily operations.</p></div><button class="staff-signout" id="staff-signout">Sign out</button></header>${message ? `<p class="staff-message">${esc(message)}</p>` : ''}<nav class="staff-section-nav" aria-label="Staff dashboard sections">${(['overview', 'reservations', 'rooms', 'categories'] as const).map((section) => `<button type="button" class="staff-section-tab ${selectedStaffSection === section ? 'active' : ''}" data-staff-section="${section}">${section[0].toUpperCase()}${section.slice(1)}</button>`).join('')}</nav><div class="ops-stats"><div><small>ARRIVALS TODAY</small><strong>${checkInToday}</strong></div><div><small>IN HOUSE</small><strong>${occupied}</strong></div><div><small>RESERVATIONS</small><strong>${bookings.filter((booking) => booking.status === 'reserved').length}</strong></div><div><small>PHYSICAL ROOMS</small><strong>${inventory.length}</strong></div><div><small>ROOM CATEGORIES</small><strong>${categories.length}</strong></div></div><section class="ops-panel"><div class="ops-toolbar"><div><p class="eyebrow">THE FRONT DESK</p><h2>Reservation manifest</h2></div><button id="refresh-ops" class="staff-signout">Refresh</button></div><div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>GUEST / REFERENCE</th><th>ROOM</th><th>DATES</th><th>STAY TOTAL</th><th>STATUS</th><th>UPDATE</th></tr></thead><tbody>${rows || '<tr><td colspan="6" class="empty-ops">No reservations to show yet.</td></tr>'}</tbody></table></div></section><p class="ops-footnote">A check-in occupies the room; check-out or cancellation releases it for new searches.</p></main>`);
   const inventoryMarkup = `<section class="inventory-management"><div class="ops-toolbar"><div><p class="eyebrow">ROOM CATALOG</p><h2>Categories & inventory</h2></div><span>${categories.length} categories · ${inventory.length} rooms</span></div><div class="inventory-forms"><form id="category-form" class="inventory-form"><h3 id="category-form-title">Add a room category</h3><input id="category-id" type="hidden"><label>Category name<input id="category-name" required placeholder="Standard, Executive suite"></label><label>Description<input id="category-description" placeholder="Room description"></label><div class="form-inline"><label>Nightly rate (GH₵)<input id="category-rate" type="number" min="1" required placeholder="Set rate"></label><label>Capacity<input id="category-capacity" type="number" min="1" value="2" required></label></div><label>Amenities<input id="category-amenities" placeholder="Air conditioning, desk, balcony"></label><button class="confirm-reservation" type="submit">Save category <span>↗</span></button></form><form id="room-form" class="inventory-form"><h3>Add a physical room</h3><label>Room name / number<input id="room-name" required placeholder="Room 101, Palm Suite"></label><label>Room category<select id="room-category" required>${categories.map((category) => `<option value="${category.id}">${esc(category.name)}</option>`).join('')}</select></label><div class="form-inline"><label>Floor<input id="room-floor" type="number" min="1" value="1" required></label><label>Wing<input id="room-wing" maxlength="12" value="A" required></label><label>Deck order<input id="room-order" type="number" min="0" value="0" required></label></div><button class="confirm-reservation" type="submit">Add room <span>↗</span></button></form></div><div class="inventory-tables"><div class="ops-table-wrap"><h3>Room categories</h3><table class="ops-table"><thead><tr><th>CATEGORY</th><th>RATE</th><th>CAPACITY</th><th>EDIT</th></tr></thead><tbody>${categories.map((category) => `<tr><td><strong>${esc(category.name)}</strong><small>${esc(category.description)}</small></td><td>${money(category.nightly_rate)} / night</td><td>${category.capacity} guests</td><td><button class="staff-signout edit-category" data-category-id="${category.id}">Edit</button></td></tr>`).join('') || '<tr><td colspan="4" class="empty-ops">Add a category with a real rate to start.</td></tr>'}</tbody></table></div><div class="ops-table-wrap"><h3>Physical rooms</h3><table class="ops-table"><thead><tr><th>ROOM</th><th>CATEGORY</th><th>LOCATION</th><th>STATUS</th></tr></thead><tbody>${inventory.map((room) => `<tr><td><strong>${esc(room.room_name)}</strong></td><td>${esc(categories.find((category) => category.id === room.category_id)?.name || 'Uncategorized')}</td><td>Floor ${room.floor_number} · Wing ${esc(room.wing)}</td><td><select class="room-status-select" data-room-id="${room.id}"><option value="active" ${room.operational_status === 'active' ? 'selected' : ''}>Active</option><option value="maintenance" ${room.operational_status === 'maintenance' ? 'selected' : ''}>Maintenance</option></select></td></tr>`).join('') || '<tr><td colspan="4" class="empty-ops">Add room numbers to populate the deck.</td></tr>'}</tbody></table></div></div></section>`;
   document.querySelector('.staff-board .ops-panel')?.insertAdjacentHTML('beforebegin', inventoryMarkup);
+  const roomForm = document.querySelector<HTMLFormElement>('#room-form');
+  const roomFormHeading = roomForm?.querySelector('h3');
+  if (roomFormHeading) roomFormHeading.id = 'room-form-title';
+  const roomStatusLabel = document.createElement('label');
+  roomStatusLabel.innerHTML = 'Operational status<select id="room-status"><option value="active">Active</option><option value="maintenance">Maintenance</option></select>';
+  roomForm?.querySelector('.form-inline')?.insertAdjacentElement('afterend', roomStatusLabel);
+  const roomSaveButton = roomForm?.querySelector<HTMLButtonElement>('button[type="submit"]');
+  if (roomSaveButton) {
+    roomSaveButton.id = 'save-room';
+    roomSaveButton.innerHTML = 'Add room <span>↗</span>';
+  }
+  const roomCancelButton = document.createElement('button');
+  roomCancelButton.className = 'staff-signout';
+  roomCancelButton.id = 'cancel-room-edit';
+  roomCancelButton.type = 'button';
+  roomCancelButton.textContent = 'Cancel edit';
+  roomCancelButton.hidden = true;
+  roomSaveButton?.insertAdjacentElement('beforebegin', roomCancelButton);
+  const physicalRoomTable = document.querySelector<HTMLElement>('.inventory-tables > .ops-table-wrap:last-child');
+  if (physicalRoomTable) {
+    const table = physicalRoomTable.querySelector<HTMLTableElement>('table');
+    if (table) {
+      table.querySelector('thead tr')!.insertAdjacentHTML('beforeend', '<th>ACTIONS</th>');
+      table.querySelectorAll<HTMLTableRowElement>('tbody tr').forEach((row, index) => {
+        const room = inventory[index];
+        if (!room) return;
+        row.insertAdjacentHTML('beforeend', `<td><div class="room-actions"><button class="staff-signout edit-room" type="button" data-room-id="${room.id}">Edit</button><button class="staff-signout delete-room" type="button" data-room-id="${room.id}">Delete</button></div></td>`);
+      });
+      const emptyRow = table.querySelector('tbody tr td.empty-ops');
+      if (emptyRow) emptyRow.setAttribute('colspan', '5');
+    }
+  }
+  const selectStaffSection = (section: typeof selectedStaffSection) => {
+    selectedStaffSection = section;
+    document.querySelectorAll<HTMLButtonElement>('.staff-section-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.staffSection === section));
+    const stats = document.querySelector<HTMLElement>('.ops-stats');
+    const reservations = document.querySelector<HTMLElement>('.ops-panel');
+    const inventoryPanel = document.querySelector<HTMLElement>('.inventory-management');
+    const inventoryForms = document.querySelector<HTMLElement>('.inventory-forms');
+    const inventoryTables = document.querySelector<HTMLElement>('.inventory-tables');
+    const categoryForm = document.querySelector<HTMLElement>('#category-form');
+    const roomForm = document.querySelector<HTMLElement>('#room-form');
+    const categoryTable = document.querySelector<HTMLElement>('.inventory-tables > .ops-table-wrap:first-child');
+    const roomTable = document.querySelector<HTMLElement>('.inventory-tables > .ops-table-wrap:last-child');
+    if (stats) stats.hidden = section !== 'overview';
+    if (reservations) reservations.hidden = section !== 'reservations' && section !== 'overview';
+    if (inventoryPanel) inventoryPanel.hidden = section !== 'rooms' && section !== 'categories';
+    if (inventoryForms) inventoryForms.hidden = section === 'overview' || section === 'reservations';
+    if (inventoryTables) inventoryTables.hidden = section === 'overview' || section === 'reservations';
+    if (categoryForm) categoryForm.hidden = section !== 'categories';
+    if (roomForm) roomForm.hidden = section !== 'rooms';
+    if (categoryTable) categoryTable.hidden = section !== 'categories';
+    if (roomTable) roomTable.hidden = section !== 'rooms';
+    const title = document.querySelector<HTMLElement>('#inventory-section-title');
+    if (title) title.textContent = section === 'categories' ? 'Room categories' : 'Physical rooms';
+  };
+  document.querySelectorAll<HTMLButtonElement>('.staff-section-tab').forEach((tab) => tab.onclick = () => selectStaffSection(tab.dataset.staffSection as typeof selectedStaffSection));
+  selectStaffSection(selectedStaffSection);
   document.querySelector<HTMLButtonElement>('#staff-signout')!.onclick = async () => { await supabase.auth.signOut(); sessionUser = null; staffMode = false; renderLanding(); };
   document.querySelector<HTMLButtonElement>('#refresh-ops')!.onclick = () => void loadStaffBoard();
   document.querySelectorAll<HTMLButtonElement>('.edit-category').forEach((button) => button.onclick = () => {
@@ -222,6 +282,7 @@ function renderStaffBoard(bookings: StaffBooking[], message = '', categories: Ca
     document.querySelector<HTMLInputElement>('#category-capacity')!.value = String(category.capacity);
     document.querySelector<HTMLInputElement>('#category-amenities')!.value = category.amenities.join(', ');
     document.querySelector<HTMLElement>('#category-form-title')!.textContent = `Edit ${category.name}`;
+    selectStaffSection('categories');
     document.querySelector('#category-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
   document.querySelector<HTMLFormElement>('#category-form')!.onsubmit = async (event) => {
@@ -234,11 +295,38 @@ function renderStaffBoard(bookings: StaffBooking[], message = '', categories: Ca
   };
   document.querySelector<HTMLFormElement>('#room-form')!.onsubmit = async (event) => {
     event.preventDefault();
-    const values = { room_name: document.querySelector<HTMLInputElement>('#room-name')!.value.trim(), category_id: document.querySelector<HTMLSelectElement>('#room-category')!.value, floor_number: Number(document.querySelector<HTMLInputElement>('#room-floor')!.value), wing: document.querySelector<HTMLInputElement>('#room-wing')!.value.trim().toUpperCase(), sort_order: Number(document.querySelector<HTMLInputElement>('#room-order')!.value) };
-    const { error } = await supabase.from('hotel_rooms').insert(values);
+    const values = { room_name: document.querySelector<HTMLInputElement>('#room-name')!.value.trim(), category_id: document.querySelector<HTMLSelectElement>('#room-category')!.value, floor_number: Number(document.querySelector<HTMLInputElement>('#room-floor')!.value), wing: document.querySelector<HTMLInputElement>('#room-wing')!.value.trim().toUpperCase(), sort_order: Number(document.querySelector<HTMLInputElement>('#room-order')!.value), operational_status: document.querySelector<HTMLSelectElement>('#room-status')!.value };
+    const result = editingRoomId ? await supabase.from('hotel_rooms').update(values).eq('id', editingRoomId) : await supabase.from('hotel_rooms').insert(values);
+    const error = result.error;
     if (error) { renderStaffBoard(bookings, error.message, categories, inventory); return; }
-    await loadStaffBoard('Room added to inventory.');
+    editingRoomId = '';
+    await loadStaffBoard('Physical room saved.');
   };
+  document.querySelectorAll<HTMLButtonElement>('.edit-room').forEach((button) => button.onclick = () => {
+    const room = inventory.find((item) => item.id === button.dataset.roomId);
+    if (!room) return;
+    editingRoomId = room.id;
+    document.querySelector<HTMLInputElement>('#room-name')!.value = room.room_name;
+    document.querySelector<HTMLSelectElement>('#room-category')!.value = room.category_id;
+    document.querySelector<HTMLInputElement>('#room-floor')!.value = String(room.floor_number);
+    document.querySelector<HTMLInputElement>('#room-wing')!.value = room.wing;
+    document.querySelector<HTMLInputElement>('#room-order')!.value = String(room.sort_order);
+    document.querySelector<HTMLSelectElement>('#room-status')!.value = room.operational_status;
+    document.querySelector<HTMLElement>('#room-form-title')!.textContent = `Edit ${room.room_name}`;
+    document.querySelector<HTMLButtonElement>('#save-room')!.innerHTML = 'Save room <span>↗</span>';
+    document.querySelector<HTMLButtonElement>('#cancel-room-edit')!.hidden = false;
+    selectStaffSection('rooms');
+    document.querySelector('#room-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  document.querySelector<HTMLButtonElement>('#cancel-room-edit')!.onclick = () => { editingRoomId = ''; void loadStaffBoard(); };
+  document.querySelectorAll<HTMLButtonElement>('.delete-room').forEach((button) => button.onclick = async () => {
+    const room = inventory.find((item) => item.id === button.dataset.roomId);
+    if (!room || !window.confirm(`Delete ${room.room_name}? Rooms with reservation history cannot be deleted.`)) return;
+    button.disabled = true;
+    const { error } = await supabase.from('hotel_rooms').delete().eq('id', room.id);
+    if (error) { renderStaffBoard(bookings, error.message, categories, inventory); return; }
+    await loadStaffBoard(`${room.room_name} deleted.`);
+  });
   document.querySelectorAll<HTMLSelectElement>('.room-status-select').forEach((select) => select.onchange = async () => {
     const { error } = await supabase.from('hotel_rooms').update({ operational_status: select.value }).eq('id', select.dataset.roomId);
     await loadStaffBoard(error?.message || 'Room operational status updated.');
